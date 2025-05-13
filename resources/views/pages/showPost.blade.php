@@ -1,98 +1,179 @@
 @php
   function getProfileDefault($fullname)
   {
-      $words = explode(" ", $fullname);
+      $words = explode(' ', $fullname);
       $firstTwoWords = array_slice($words, 0, 2);
-      return implode("", array_map(fn($word) => strtoupper($word[0]), $firstTwoWords));
+      return implode('', array_map(fn($word) => strtoupper($word[0]), $firstTwoWords));
   }
-  if (isset($activeUser)) {
+  if (isset($activeUser) && $activeUser->profile_picture === null) {
       $profileDefault = getProfileDefault($activeUser->fullname);
   }
 
-  $post->author->profileDefault = getProfileDefault($post->author->fullname);
-  if (isset($activeUser)) {
-      $post->likes->pluck("user_id")->contains($activeUser->id)
-          ? ($post->isLikedByActiveUser = true)
-          : ($post->isLikedByActiveUser = false);
+  if ($post->author->profile_picture === null) {
+      $post->author->profileDefault = getProfileDefault($post->author->fullname);
   }
+  if (isset($activeUser)) {
+      $post->likes->pluck('user_id')->contains($activeUser->id) ? ($post->isLikedByActiveUser = true) : ($post->isLikedByActiveUser = false);
+  }
+  $post->comments->each(function ($comment) {
+      if ($comment->user->profile_picture === null) {
+          $comment->user->profileDefault = getProfileDefault($comment->user->fullname);
+      }
+  });
+
 @endphp
 
 <x-layout title="Show Post">
-  <div class="container mx-auto flex pt-24 desktop:pt-32 gap-10">
-    @auth
-      <x-navbar :$profileDefault />
-    @endauth
-    @guest
-      <x-navbar />
-    @endguest
+  <div class="desktop:pt-32 container mx-auto flex gap-10 pt-24">
+    <x-navbar :profileDefault="auth()->check() && isset($profileDefault) ? $profileDefault : null" :activeUser="auth()->check() ? $activeUser->toArray() : []" :allUser="$allUser->toArray()" />
+
     {{-- feed --}}
-    <div class="w-full min-h-[calc(100vh-7rem)] p-4 bg-white rounded-2xl shadow-2xl">
-      <div class="mt-4">
-        <div class="relative">
-          <a href="{{ route("show-post", $post->slug) }}"
-            class="flex gap-3 p-3 tablet:p-5 mb-6 bg-gray-100 rounded-xl hover:bg-gray-200 transition shadow-[5px_9px_6px_-1px_rgba(0,0,0,0.30)]">
-            <div
-              class="flex items-center justify-center bg-slate-300 shadow-lg rounded-full font-bold text-lg tablet:text-xl w-15 h-15">
+    <div class="desktop:min-h-[calc(100vh-8.5rem)] min-h-[calc(100vh-7rem)] w-full rounded-2xl bg-white p-4 shadow-2xl">
+      <div class="relative mb-6 rounded-xl bg-gray-100 p-4 shadow-[5px_9px_6px_-1px_rgba(0,0,0,0.30)]">
+        <!-- Header: Profile Picture and Author Info -->
+        <div class="flex items-center gap-4">
+          <!-- Profile Picture -->
+          <div class="w-15 h-15 tablet:text-xl flex items-center justify-center rounded-full bg-slate-300 text-lg font-bold shadow-lg">
+            @if (isset($post->author->profileDefault))
               {{ $post->author->profileDefault }}
-            </div>
-            <div class="flex-1">
-              <h3 class="font-bold text-base tablet:text-lg">{{ $post->author->fullname }}</h3>
-              <p class="text-gray-500 mb-3 text-sm tablet:text-base">
-                {{ "@" . $post->author->username }}</p>
-              <p class="text-sm tablet:text-base">{{ $post->content }}</p>
-              <span
-                class="text-gray-500 text-end block pt-6 tablet:pt-4 text-sm tablet:text-base">{{ $post->created_at->diffForHumans() }}</span>
-            </div>
+            @else
+              <img class="h-full w-full rounded-full object-cover" src="{{ asset($post->author->profile_picture) }}" alt="profile picture">
+            @endif
+          </div>
+          <!-- Author Info -->
+          <a href="{{ route('profile', $post->author->id) }}">
+            <h3 class="text-lg font-bold">{{ $post->author->fullname }}</h3>
+            <p class="text-sm text-gray-500">{{ '@' . $post->author->username }}</p>
           </a>
-          <div class="flex gap-5 w-fit absolute bottom-3 tablet:bottom-5 left-21 tablet:left-23">
-            <div class="flex items-center gap-2">
+        </div>
+
+        <!-- Post Content -->
+        <div class="mt-4">
+          <p class="text-base text-gray-800">{{ $post->content }}</p>
+          <!-- Post Image -->
+          @isset($post->image)
+            <img src="{{ asset($post->image) }}" alt="Post Image" class="tablet:max-h-95 desktop:max-h-110 mt-4 max-h-80 rounded-lg object-contain object-left">
+          @endisset
+
+        </div>
+
+        <!-- Post Actions: Like -->
+        <div class="mt-4 flex items-start justify-between">
+          <div class="flex justify-start gap-4">
+            <!-- Like Button -->
+            <div class="flex items-start gap-2">
               @guest
-                <a href="{{ route("login") }}">
-                  <img src="{{ asset("img/loveOutline.png") }}" alt="loveOutline"
-                    class="w-5 tablet:w-5.5 desktop:w-6 transition-all hover:scale-110">
+                <a href="{{ route('login') }}" class="hover:text-red-500">
+                  <span class="material-symbols-outlined pl2">favorite</span>
                 </a>
               @endguest
               @auth
-                <form action="{{ route("like-post", $post->slug) }}" method="POST"
-                  class="flex items-center gap-2">
+                <form action="{{ route('like-post', $post->slug) }}" method="POST" class="relative">
                   @csrf
-                  @method("POST")
-                  <button type="submit" class="w-fit cursor-pointer">
+                  @method('POST')
+                  <button type="submit" class="cursor-pointer">
                     @if ($post->isLikedByActiveUser)
-                      <span class="material-symbols-outlined text-red-500 like-btn liked">
-                        favorite
-                      </span>
+                      <span class="material-symbols-outlined like-btn liked text-red-500">favorite</span>
                     @else
-                      <span class="material-symbols-outlined pl2 like-btn unliked">
-                        favorite
-                      </span>
+                      <span class="material-symbols-outlined like-btn unliked pl2">favorite</span>
                     @endif
                   </button>
-                  <p class="text-sm tablet:text-base">{{ $post->likes_count }}</p>
+                  <span class="limiter hidden"></span>
                 </form>
               @endauth
+              <p class="text-sm">{{ $post->likes_count }}</p>
             </div>
-            <div class="flex items-center gap-2">
-              <a href="{{ route("login") }}">
-                <img src="{{ asset("img/comment.png") }}" alt="comment"
-                  class="w-5 tablet:w-5.5 desktop:w-6 transition-all hover:scale-110">
-              </a>
-              <p class="text-sm tablet:text-base">{{ $post->comments_count }}</p>
-            </div>
+
           </div>
+          <!-- Post Timestamp -->
+          <span class="block pt-4 text-right text-sm text-gray-500">{{ $post->created_at->diffForHumans() }}</span>
         </div>
+      </div>
+      <!-- Comments Form -->
+      @auth
+        <form action="{{ route('comment-post', $post->slug) }}" id="commentform" method="POST" class="my-10">
+          @csrf
+          @method('POST')
+          <input type="hidden" value="{{ $post->id }}" name="post_id">
+          <input type="hidden" value="{{ $activeUser->id }}" name="user_id">
+          <div class="{{ $errors->any() ? 'items-start' : 'items-center' }} flex gap-4">
+            <div class="w-15 h-15 tablet:text-xl flex items-center justify-center rounded-full bg-slate-300 text-lg font-bold shadow-lg">
+              @if (isset($profileDefault))
+                <p class="transition group-hover:text-black/30">{{ $profileDefault }}</p>
+              @else
+                <img class="h-full w-full rounded-full object-cover" src="{{ asset($activeUser->profile_picture) }}" alt="profile picture">
+              @endif
+            </div>
+            <div class="flex-1">
+              <input type="text" name="content" placeholder="Write a comment..." class="{{ $errors->any() ? 'border-red-500 border-2' : 'border border-gray-300' }} w-full rounded-xl p-2 focus:outline-none focus:ring focus:ring-black" required autocomplete="off">
+              @if ($errors->any())
+                <p class="errorMessage">{{ $errors->first() }}</p>
+              @endif
+            </div>
+            <button type="submit" class="bg-kata hover:bg-kataDarken rounded-xl px-4 py-2 text-white">Comment</button>
+          </div>
+        </form>
+      @endauth
+
+      <!-- Comments Section -->
+      <div class="px-4">
+        <h3 class="text-lg font-bold">Comments ({{ $post->comments_count }})</h3>
+        @if ($post->comments_count > 0)
+          @foreach ($post->comments as $comment)
+            <div class="mt-4 flex gap-4 rounded-xl bg-gray-50 p-4 shadow-[5px_9px_6px_-1px_rgba(0,0,0,0.30)] hover:bg-gray-100">
+              <div class="w-15 h-15 tablet:text-xl flex shrink-0 items-center justify-center rounded-full bg-slate-300 text-lg font-bold shadow-lg">
+                @if (isset($comment->user->profileDefault))
+                  {{ $comment->user->profileDefault }}
+                @else
+                  <img class="h-full w-full rounded-full object-cover" src="{{ asset($comment->user->profile_picture) }}" alt="profile picture">
+                @endif
+              </div>
+              <div class="flex-1">
+                <a class="block w-fit" href="{{ route('profile', $comment->user->id) }}">
+                  <h3 class="text-lg w-fit font-bold">{{ $comment->user->fullname }}</h3>
+                  <p class="text-sm text-gray-500">{{ '@' . $comment->user->username }}</p>
+                </a>
+                <p class="mt-4 text-base text-gray-800">{{ $comment->content }}</p>
+                <span class="block pt-1 text-end text-sm text-gray-500">{{ $comment->created_at->diffForHumans() }}</span>
+              </div>
+            </div>
+          @endforeach
+        @else
+          <p class="text-sm text-gray-500">No comments yet.</p>
+        @endif
       </div>
     </div>
   </div>
 
   <script>
     $(document).ready(function() {
+      //comment button
+      const formComment = $("#commentform");
+      const commentButton = formComment.find("button");
+      commentButton.click(function(e) {
+        e.preventDefault();
+        Swal.fire({
+          title: 'Processing...',
+          text: 'Please wait while we logout.',
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          showConfirmButton: false,
+          didOpen: () => {
+            Swal.showLoading(); // Menampilkan animasi loading
+          }
+        });
+        formComment.submit();
+      });
+
+      // Like Button
       $(".like-btn").click(function(e) {
         e.preventDefault();
 
         const form = $(this).closest("form");
         const likeButton = $(this);
-        const likeCount = form.find("p");
+        const likeCount = form.siblings("p");
+        $(".limiter").removeClass("hidden").addClass("inline-block");
+
 
         if (likeButton.hasClass("liked")) {
           likeButton.removeClass("liked").addClass("unliked");
@@ -110,6 +191,8 @@
           data: form.serialize(),
           success: function(response) {
             console.log(response);
+            $(".limiter").removeClass("inline-block").addClass("hidden");
+
           },
           error: function(xhr, status, error) {
             console.error(error);
@@ -122,6 +205,7 @@
               likeButton.removeClass("liked").addClass("unliked");
               likeCount.text(parseInt(likeCount.text()) - 1);
             }
+            $(".limiter").removeClass("inline-block").addClass("hidden");
           },
         });
       });

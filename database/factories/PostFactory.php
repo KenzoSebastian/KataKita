@@ -18,11 +18,11 @@ class PostFactory extends Factory
     public function definition(): array
     {
         $id = substr(md5(uniqid()), 0, 8);
-        $slug = implode("-", str_split(preg_replace('/[\$\/0-9]/', "", bcrypt($id)), 10));
+        $slug = implode('-', str_split(preg_replace('/[\$\/0-9.,]/', '', bcrypt($id)), 10));
         return [
-            "id" => $id,
-            "slug" => $slug,
-            "content" => $this->faker->text(1000),
+            'id' => $id,
+            'slug' => $slug,
+            'content' => $this->faker->text(1000),
         ];
     }
 }

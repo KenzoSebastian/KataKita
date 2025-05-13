@@ -11,11 +11,11 @@ class Post extends Model
     /** @use HasFactory<\Database\Factories\PostFactory> */
     use HasFactory, HasUuids;
 
-    protected $fillable = ["id", "author_id", "slug", "content", "image", "tag"];
+    protected $fillable = ['id', 'author_id', 'slug', 'content', 'image', 'tag'];
 
     public function author()
     {
-        return $this->belongsTo(User::class, "author_id");
+        return $this->belongsTo(User::class, 'author_id');
     }
 
     public function likes()
@@ -25,6 +25,6 @@ class Post extends Model
 
     public function comments()
     {
-        return $this->hasMany(Comment::class);
+        return $this->hasMany(Comment::class)->orderByDesc('created_at')->with('user');
     }
 }

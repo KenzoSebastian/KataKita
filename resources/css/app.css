@@ -28,5 +28,19 @@
     --color-kataDarken: #131523;
     --color-kita: #f77132;
     --color-kitaDarken: #ed5209;
+}
 
+.material-symbols-outlined {
+    font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 10;
+}
+.pl2 {
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+.errorMessage {
+    @apply text-red-500 text-sm mt-1;
+}
+
+.limiter {
+    @apply absolute -bottom-1 -left-2 -right-2 -top-2 cursor-not-allowed rounded-full bg-transparent p-4;
 }

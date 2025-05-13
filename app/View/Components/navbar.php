@@ -12,10 +12,15 @@ class navbar extends Component
      * Create a new component instance.
      */
 
-    public string $profileDefault;
-    public function __construct(string $profileDefault = '')
+    public ?string $profileDefault;
+    public $activeUser = [];
+    public $allUser = [];
+    public function __construct(string $profileDefault = null, array $activeUser, array $allUser)
     {
         $this->profileDefault = $profileDefault;
+        $this->activeUser = $activeUser;
+        $this->allUser = $allUser;
+
     }
 
     /**
