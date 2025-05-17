@@ -31,7 +31,7 @@
     <div class="desktop:min-h-[calc(100vh-8.5rem)] min-h-[calc(100vh-7rem)] w-full rounded-2xl bg-white p-4 shadow-2xl">
       <div class="relative mb-6 rounded-xl bg-gray-100 p-4 shadow-[5px_9px_6px_-1px_rgba(0,0,0,0.30)]">
         <!-- Header: Profile Picture and Author Info -->
-        <div class="flex items-center gap-4">
+        <div class="tablet:justify-start tablet:gap-4 flex items-center justify-between gap-2">
           <!-- Profile Picture -->
           <div class="w-15 h-15 tablet:text-xl flex items-center justify-center rounded-full bg-slate-300 text-lg font-bold shadow-lg">
             @if (isset($post->author->profileDefault))
@@ -45,6 +45,21 @@
             <h3 class="text-lg font-bold">{{ $post->author->fullname }}</h3>
             <p class="text-sm text-gray-500">{{ '@' . $post->author->username }}</p>
           </a>
+          {{-- following button --}}
+          @auth
+            @if ($activeUser->id !== $post->author->id)
+              <form action="" method="POST" class="inline-block">
+                @csrf
+                @if ($activeUser->followings->contains($post->author->id))
+                  <button data-follow=true type="submit" class="follow-btn flex cursor-pointer items-center gap-1 rounded bg-gray-200 px-4 py-1 font-semibold text-gray-800 transition hover:bg-gray-300"><span class="material-symbols-outlined">
+                      check
+                    </span>Following</button>
+                @else
+                  <button data-follow=false type="submit" class="bg-kita hover:bg-kitaDarken follow-btn cursor-pointer rounded-md px-4 py-1 font-semibold text-white transition">Follow</button>
+                @endif
+              </form>
+            @endif
+          @endauth
         </div>
 
         <!-- Post Content -->
@@ -110,7 +125,7 @@
                 <p class="errorMessage">{{ $errors->first() }}</p>
               @endif
             </div>
-            <button type="submit" class="bg-kata hover:bg-kataDarken rounded-xl px-4 py-2 text-white">Comment</button>
+            <button type="submit" class="bg-kata hover:bg-kataDarken cursor-pointer rounded-xl px-4 py-2 text-white">Comment</button>
           </div>
         </form>
       @endauth
@@ -130,7 +145,7 @@
               </div>
               <div class="flex-1">
                 <a class="block w-fit" href="{{ route('profile', $comment->user->id) }}">
-                  <h3 class="text-lg w-fit font-bold">{{ $comment->user->fullname }}</h3>
+                  <h3 class="w-fit text-lg font-bold">{{ $comment->user->fullname }}</h3>
                   <p class="text-sm text-gray-500">{{ '@' . $comment->user->username }}</p>
                 </a>
                 <p class="mt-4 text-base text-gray-800">{{ $comment->content }}</p>
@@ -147,6 +162,23 @@
 
   <script>
     $(document).ready(function() {
+      //follower button
+      $(".follow-btn").click(function(e) {
+        e.preventDefault();
+        $(this).removeAttr("class");
+        if ($(this).data("follow")) {
+          $(this).addClass("bg-kita hover:bg-kitaDarken follow-btn cursor-pointer rounded-md px-4 py-1 font-semibold text-white transition");
+          $(this).html(`Follow`);
+          $(this).data("follow", false);
+        } else {
+          $(this).addClass("follow-btn flex cursor-pointer items-center gap-1 rounded bg-gray-200 px-4 py-1 font-semibold text-gray-800 transition hover:bg-gray-300");
+          $(this).html(`<span class="material-symbols-outlined">
+                      check
+                    </span>Following`);
+          $(this).data("follow", true);
+        }
+      })
+
       //comment button
       const formComment = $("#commentform");
       const commentButton = formComment.find("button");

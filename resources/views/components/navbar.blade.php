@@ -1,4 +1,5 @@
 <nav class="desktop:px-7 fixed left-0 right-0 top-0 z-10 flex w-full justify-between bg-white px-1 py-3 shadow">
+  {{-- Logo --}}
   <a href="{{ route('beranda') }}" class="desktop:text-5xl font-jolly mr-2 flex items-center text-2xl">
     <img src="{{ asset('img/logo.png') }}" alt="logo" class="w-15 desktop:w-24 desktop:mr-4 mr-1.5">
     <div class="desktop:flex-row flex flex-col">
@@ -7,6 +8,7 @@
     </div>
   </a>
   <div class="desktop:w-3/5 flex w-3/4 items-center justify-between">
+    {{-- search bar --}}
     <form action="{{ route('beranda', ['search' => request('search')]) }}" class="relative w-full" id="searchForm">
       <input type="text" id="searchInput" class="bg-light/75 shadow-desktop desktop:py-2 desktop:w-5/6 h-full w-full rounded-full py-1.5 pl-11 pr-4" placeholder="Search..." name="search" autocomplete="off">
       <div class="desktop:top-1.5 desktop:bottom-1.5 desktop:w-8 absolute bottom-1 left-3 top-1 w-6">
@@ -17,11 +19,13 @@
         <!-- Suggestions will be dynamically added here -->
       </div>
     </form>
+    {{-- navigation actions --}}
+    {{-- desktop --}}
     @guest
       <a href="{{ route('login') }}" class="bg-kita hover:bg-kitaDarken desktop:block mr-4 hidden rounded-lg px-7 py-1.5 text-white shadow transition">
         Login</a>
     @endguest
-
+    {{-- mobile --}}
     <div x-data="{ open: false }" class="tablet:ml-3 desktop:ml-5 desktop:hidden relative ml-1">
       <button @click="open = !open" class="flex h-10 w-10 cursor-pointer flex-col items-center justify-between p-2">
         <!-- Bar 1 -->
@@ -36,6 +40,7 @@
           <a href="{{ route('login') }}" class="block px-6 py-4 text-gray-800 transition hover:bg-gray-200">Login</a>
         @endguest
 
+        {{-- profile navigation:mobile --}}
         @auth
           <a href="#" class="flex items-start px-6 py-4 text-gray-800 transition hover:bg-gray-200">
             <div class="mr-1 inline-block">
@@ -55,6 +60,8 @@
         @endauth
       </div>
     </div>
+
+    {{-- profile navigation:desktop --}}
     @auth
       <div class="flex items-center">
         <a href="#" class="hover:bg-light desktop:block mr-5 hidden rounded-full shadow transition">
@@ -78,9 +85,8 @@
 
 <script>
   $(document).ready(function() {
-    const allUser = @json($allUser); // Data dari server
-
     // Event listener untuk input search
+    const allUser = @json($allUser); // Data dari backend
     $('#searchInput').on('input', function() {
       const query = $(this).val().toLowerCase(); // Ambil input dan ubah ke lowercase
       const suggestionBox = $('#suggestionBox');
@@ -120,14 +126,14 @@
       $('#suggestionBox').addClass('hidden'); // Sembunyikan suggestion box
     });
 
-    // Sembunyikan suggestion box jika klik di luar
+    // Sembunyikan suggestion box search jika klik di luar
     $(document).on('click', function(e) {
       if (!$(e.target).closest('#searchInput, #suggestionBox').length) {
         $('#suggestionBox').addClass('hidden');
       }
     });
 
-    // Event listener untuk submit form
+    // Event listener untuk submit form search
     $('#searchForm').on('submit', function(e) {
       e.preventDefault(); // Cegah submit default
       const query = $('#searchInput').val().toLowerCase(); // Ambil input
@@ -156,6 +162,7 @@
       }
     });
 
+    // function alert untuk tombol logout
     const alertLogout = (formLogout) => {
       const logoutButton = formLogout.find('button');
       // Event listener untuk tombol logout

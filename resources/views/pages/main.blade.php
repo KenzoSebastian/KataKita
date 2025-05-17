@@ -9,7 +9,7 @@
   if (isset($activeUser) && $activeUser->profile_picture === null) {
       $profileDefault = getProfileDefault($activeUser->fullname);
   }
-  foreach ($posts as $post) {
+  foreach ($allPosts as $post) {
       if ($post->author->profile_picture === null) {
           $post->author->profileDefault = getProfileDefault($post->author->fullname);
       }
@@ -20,7 +20,9 @@
 @endphp
 <x-layout title="Main Page">
   <div class="desktop:pt-32 container mx-auto flex gap-10 pt-24">
+    {{-- navbar --}}
     <x-navbar :profileDefault="auth()->check() && isset($profileDefault) ? $profileDefault : null" :activeUser="auth()->check() ? $activeUser->toArray() : []" :allUser="$allUser->toArray()" />
+
     {{-- register --}}
     <div class="desktop:block relative hidden w-1/4">
       @guest
@@ -83,6 +85,7 @@
         </div>
       @endauth
     </div>
+
     {{-- feed --}}
     <div class="desktop:min-h-[calc(100vh-8.5rem)] desktop:w-3/4 min-h-[calc(100vh-7rem)] w-full rounded-2xl bg-white p-4 shadow-2xl">
       @auth
@@ -116,99 +119,136 @@
           <button class="bg-kata hover:bg-kataDarken mt-5 w-full cursor-pointer rounded-md py-3 text-center font-semibold text-white transition-colors duration-300">Post</button>
         </form>
       @endauth
-      @foreach ($posts as $post)
-        <div class="relative mb-6 rounded-xl bg-gray-100 p-4 shadow-[5px_9px_6px_-1px_rgba(0,0,0,0.30)] transition hover:bg-gray-200">
-          <!-- Header: Profile Picture and Author Info -->
-          <div class="flex items-center gap-4">
-            <!-- Profile Picture -->
-            <div class="w-15 h-15 tablet:text-xl flex items-center justify-center rounded-full bg-slate-300 text-lg font-bold shadow-lg">
-              @if (isset($post->author->profileDefault))
-                {{ $post->author->profileDefault }}
-              @else
-                <img class="h-full w-full rounded-full object-cover" src="{{ asset($post->author->profile_picture) }}" alt="profile picture">
-              @endif
-            </div>
-            <!-- Author Info -->
-            <a href="{{ route('profile', $post->author->id) }}">
-              <h3 class="text-lg font-bold">{{ $post->author->fullname }}</h3>
-              <p class="text-sm text-gray-500">{{ '@' . $post->author->username }}</p>
-            </a>
+
+      {{-- tab feed --}}
+      <div x-data="{ activeTab: 'all' }" class="overflow-hidden">
+        @auth
+          <div class="mb-6 flex items-center justify-center gap-10">
+            <!-- Tab Following Posts -->
+            <span @click="activeTab = 'following'" :class="activeTab === 'following' ? 'bg-kita/50 text-black' : 'bg-kita/5 text-gray-500'" class="inline-block cursor-pointer rounded-full px-8 py-3 text-lg font-bold transition duration-300 ease-in-out">
+              Following Posts
+            </span>
+
+            <!-- Tab All Posts -->
+            <span @click="activeTab = 'all'" :class="activeTab === 'all' ? 'bg-kita/50 text-black' : 'bg-kita/5 text-gray-500'" class="inline-block cursor-pointer rounded-full px-8 py-3 text-lg font-bold transition duration-300 ease-in-out">
+              All Posts
+            </span>
           </div>
-
-          <!-- Post Content -->
-          <div class="mt-4">
-            <p class="text-base text-gray-800">
-              {{ Str::limit($post->content, 250) }}
-              @if (Str::length($post->content) > 250)
-                <a href="{{ route('show-post', $post->slug) }}" class="text-kita font-bold">Read more</a>
-              @endif
-            </p>
-            <!-- Post Image -->
-            @isset($post->image)
-              <img src="{{ asset($post->image) }}" alt="Post Image" class="tablet:max-h-95 desktop:max-h-110 mt-4 max-h-80 rounded-lg object-contain object-left">
-            @endisset
-
-          </div>
-
-          <!-- Post Actions: Like and Comment -->
-          <div class="mt-4 flex items-start justify-between">
-            <div class="flex justify-start gap-4">
-              <!-- Like Button -->
-              <div class="flex items-start gap-2">
-                @guest
-                  <a href="{{ route('login') }}" class="hover:text-red-500">
-                    <span class="material-symbols-outlined pl2">favorite</span>
-                  </a>
-                @endguest
-                @auth
-                  <form action="{{ route('like-post', $post->slug) }}" method="POST" class="relative">
-                    @csrf
-                    @method('POST')
-                    <button type="submit" class="cursor-pointer">
-                      @if ($post->isLikedByActiveUser)
-                        <span class="material-symbols-outlined like-btn liked text-red-500">favorite</span>
-                      @else
-                        <span class="material-symbols-outlined like-btn unliked pl2">favorite</span>
-                      @endif
-                    </button>
-                    <span class="limiter hidden"></span>
-                  </form>
-                @endauth
-                <p class="text-sm">{{ $post->likes_count }}</p>
-              </div>
-
-              <!-- Comment Button -->
-              <div class="flex items-start gap-2">
-                @guest
-                  <a href="{{ route('show-post', $post->slug) }}" class="hover:text-kita transition">
-                    <span class="material-symbols-outlined pl2">chat</span>
-                  </a>
-                @endguest
-                @auth
-                  <a href="{{ route('show-post', $post->slug) }}" class="hover:text-kita transition">
-                    <span class="material-symbols-outlined pl2">chat</span>
-                  </a>
-                @endauth
-                <p class="text-sm">{{ $post->comments_count }}</p>
-              </div>
-
-            </div>
-            <!-- Post Timestamp -->
-            <span class="block pt-4 text-right text-sm text-gray-500">{{ $post->created_at->diffForHumans() }}</span>
-          </div>
+        @endauth
+        {{-- data posts --}}
+        {{-- tab following --}}
+        <div x-show="activeTab === 'following'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform translate-x-full" x-transition:enter-end="opacity-100 transform translate-x-0" x-transition:leave="transition ease-in duration-300" x-transition:leave-start="opacity-100 transform translate-x-0" x-transition:leave-end="opacity-0 transform translate-x-full" class="transition">
+          following
         </div>
-      @endforeach
+
+        {{-- tab allPost --}}
+        <div x-show="activeTab === 'all'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform -translate-x-full" x-transition:enter-end="opacity-100 transform translate-x-0" x-transition:leave="transition ease-in duration-300" x-transition:leave-start="opacity-100 transform translate-x-0" x-transition:leave-end="opacity-0 transform -translate-x-full" class="transition">
+          @foreach ($allPosts as $post)
+            <div class="relative mb-6 rounded-xl bg-gray-100 p-4 shadow-[5px_9px_6px_-1px_rgba(0,0,0,0.30)] transition hover:bg-gray-200">
+              <!-- Header: Profile Picture and Author Info -->
+              <div class="flex items-center gap-4">
+                <!-- Profile Picture -->
+                <div class="w-15 h-15 tablet:text-xl flex items-center justify-center rounded-full bg-slate-300 text-lg font-bold shadow-lg">
+                  @if (isset($post->author->profileDefault))
+                    {{ $post->author->profileDefault }}
+                  @else
+                    <img class="h-full w-full rounded-full object-cover" src="{{ asset($post->author->profile_picture) }}" alt="profile picture">
+                  @endif
+                </div>
+                <!-- Author Info -->
+                <a href="{{ route('profile', $post->author->id) }}">
+                  <h3 class="text-lg font-bold">{{ $post->author->fullname }}</h3>
+                  <p class="text-sm text-gray-500">{{ '@' . $post->author->username }}</p>
+                </a>
+              </div>
+
+              <!-- Post Content -->
+              <div class="mt-4">
+                <p class="text-base text-gray-800">
+                  {{ Str::limit($post->content, 250) }}
+                  @if (Str::length($post->content) > 250)
+                    <a href="{{ route('show-post', $post->slug) }}" class="text-kita font-bold">Read more</a>
+                  @endif
+                </p>
+                <!-- Post Image -->
+                @isset($post->image)
+                  <img src="{{ asset($post->image) }}" alt="Post Image" class="tablet:max-h-95 desktop:max-h-110 mt-4 max-h-80 rounded-lg object-contain object-left">
+                @endisset
+
+              </div>
+
+              <!-- Post Actions: Like and Comment -->
+              <div class="mt-4 flex items-start justify-between">
+                <div class="flex justify-start gap-4">
+                  <!-- Like Button -->
+                  <div class="flex items-start gap-2">
+                    @guest
+                      <a href="{{ route('login') }}" class="hover:text-red-500">
+                        <span class="material-symbols-outlined pl2">favorite</span>
+                      </a>
+                    @endguest
+                    @auth
+                      <form action="{{ route('like-post', $post->slug) }}" method="POST" class="relative">
+                        @csrf
+                        @method('POST')
+                        <button type="submit" class="cursor-pointer">
+                          @if ($post->isLikedByActiveUser)
+                            <span class="material-symbols-outlined like-btn liked text-red-500">favorite</span>
+                          @else
+                            <span class="material-symbols-outlined like-btn unliked pl2">favorite</span>
+                          @endif
+                        </button>
+                        <span class="limiter hidden"></span>
+                      </form>
+                    @endauth
+                    <p class="text-sm">{{ $post->likes_count }}</p>
+                  </div>
+
+                  <!-- Comment Button -->
+                  <div class="flex items-start gap-2">
+                    @guest
+                      <a href="{{ route('show-post', $post->slug) }}" class="hover:text-kita transition">
+                        <span class="material-symbols-outlined pl2">chat</span>
+                      </a>
+                    @endguest
+                    @auth
+                      <a href="{{ route('show-post', $post->slug) }}" class="hover:text-kita transition">
+                        <span class="material-symbols-outlined pl2">chat</span>
+                      </a>
+                    @endauth
+                    <p class="text-sm">{{ $post->comments_count }}</p>
+                  </div>
+
+                </div>
+                <!-- Post Timestamp -->
+                <span class="block pt-4 text-right text-sm text-gray-500">{{ $post->created_at->diffForHumans() }}</span>
+              </div>
+            </div>
+          @endforeach
+        </div>
+      </div>
+
     </div>
   </div>
 
   <script>
     $(document).ready(function() {
+      // Event listener for image preview post
       window.previewImage = function(event) {
         const imagePreview = $('#imagePreview');
         const removeImageButton = $('#removeImage');
         const label = $('#imageLabel');
         const file = event.target.files[0];
         if (file) {
+          if (!(file.type).includes('image/')) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: 'Invalid file type. Please select an image file.',
+            });
+            event.target.value = '';
+            return;
+          }
           const reader = new FileReader();
           reader.onload = function(e) {
             imagePreview.attr('src', e.target.result);
@@ -224,12 +264,38 @@
         }
       };
 
+      // event listener for remove image post
+      $('#removeImage').click(function() {
+        const imagePreview = $('#imagePreview');
+        const removeImageButton = $('#removeImage');
+        const fileInput = $('#image');
+
+        // Hide the image preview and remove button
+        imagePreview.addClass('hidden').attr('src', '');
+        removeImageButton.addClass('hidden');
+        // Show the label again
+        $('#imageLabel').removeClass('hidden');
+
+        // Clear the file input
+        fileInput.val('');
+      });
+
+      // event listener for changing profile picture
       @auth
       window.changeProfileImage = function(event) {
         const file = event.target.files[0];
         const form = $('#changeProfileForm');
         const activeUser = @json($activeUser);
         if (file) {
+          if (!(file.type).includes('image/')) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: 'Invalid file type. Please select an image file.',
+            });
+            event.target.value = '';
+            return;
+          }
           const reader = new FileReader();
           reader.onload = function(e) {
             Swal.fire({
@@ -278,22 +344,7 @@
       };
     @endauth
 
-
-    $('#removeImage').click(function() {
-      const imagePreview = $('#imagePreview');
-      const removeImageButton = $('#removeImage');
-      const fileInput = $('#image');
-
-      // Hide the image preview and remove button
-      imagePreview.addClass('hidden').attr('src', '');
-      removeImageButton.addClass('hidden');
-      // Show the label again
-      $('#imageLabel').removeClass('hidden');
-
-      // Clear the file input
-      fileInput.val('');
-    });
-
+    // Event listener for height adjustment of textarea
     $("textarea").on("input", function() {
       // Reset tinggi textarea untuk menghitung ulang
       $(this).css("height", "auto");
@@ -301,6 +352,7 @@
       $(this).css("height", this.scrollHeight + "px");
     });
 
+    // Event listener for like button
     $(".like-btn").click(function(e) {
       e.preventDefault();
       const form = $(this).closest("form");

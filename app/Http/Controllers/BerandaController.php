@@ -5,13 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Post;
 use App\Models\User;
 use Illuminate\Http\Request;
-use SweetAlert2\Laravel\Swal;
 
 class BerandaController extends Controller
 {
     public function index()
     {
-        $posts = Post::with(['author', 'likes'])
+        $allPosts = Post::with(['author', 'likes'])
             ->withCount(['likes', 'comments'])
             ->latest('created_at')
             ->get();
@@ -22,10 +21,10 @@ class BerandaController extends Controller
             $activeUser = auth()
                 ->user()
                 ->load(['followers', 'followings']);
-            return view('pages.main', compact(['activeUser', 'posts', 'allUser']));
+            return view('pages.main', compact(['activeUser', 'allPosts', 'allUser']));
         }
 
-        return view('pages.main', compact(['posts', 'allUser']));
+        return view('pages.main', compact(['allPosts', 'allUser']));
     }
 
     public function showPost($slug)
