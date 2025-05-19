@@ -83,7 +83,7 @@
                 </a>
               @endguest
               @auth
-                <form action="{{ route('like-post', $post->slug) }}" method="POST" class="relative">
+                <form action="{{ route('post.like', $post->slug) }}" method="POST" class="relative">
                   @csrf
                   @method('POST')
                   <button type="submit" class="cursor-pointer">
@@ -106,7 +106,7 @@
       </div>
       <!-- Comments Form -->
       @auth
-        <form action="{{ route('comment-post', $post->slug) }}" id="commentform" method="POST" class="my-10">
+        <form action="{{ route('post.comment', $post->slug) }}" id="commentform" method="POST" class="my-10">
           @csrf
           @method('POST')
           <input type="hidden" value="{{ $post->id }}" name="post_id">
@@ -177,6 +177,7 @@
                     </span>Following`);
           $(this).data("follow", true);
         }
+
       })
 
       //comment button
@@ -186,7 +187,7 @@
         e.preventDefault();
         Swal.fire({
           title: 'Processing...',
-          text: 'Please wait while we logout.',
+          text: 'Please wait while we process your comment.',
           allowOutsideClick: false,
           allowEscapeKey: false,
           showConfirmButton: false,
@@ -200,19 +201,15 @@
       // Like Button
       $(".like-btn").click(function(e) {
         e.preventDefault();
-
         const form = $(this).closest("form");
         const likeButton = $(this);
         const likeCount = form.siblings("p");
         $(".limiter").removeClass("hidden").addClass("inline-block");
 
-
         if (likeButton.hasClass("liked")) {
-          likeButton.removeClass("liked").addClass("unliked");
           likeButton.removeClass("text-red-500").addClass("pl2");
           likeCount.text(parseInt(likeCount.text()) - 1);
         } else {
-          likeButton.removeClass("unliked").addClass("liked");
           likeButton.removeClass("pl2").addClass("text-red-500");
           likeCount.text(parseInt(likeCount.text()) + 1);
         }
@@ -223,20 +220,37 @@
           data: form.serialize(),
           success: function(response) {
             console.log(response);
-            $(".limiter").removeClass("inline-block").addClass("hidden");
 
-          },
-          error: function(xhr, status, error) {
-            console.error(error);
-            if (response.liked) {
-              likeButton.removeClass("pl2").addClass("text-red-500");
-              likeButton.removeClass("unliked").addClass("liked");
-              likeCount.text(parseInt(likeCount.text()) + 1);
+            // Jika ada error dari server
+            if (response.error) {
+              Swal.fire({
+                toast: true,
+                icon: 'error',
+                title: response.message,
+                timer: 5000,
+                position: 'bottom-end',
+                showConfirmButton: false,
+                background: '#131523',
+                color: '#fff',
+              });
+
+              // Balikkan perubahan UI jika error
+              if (likeButton.hasClass("liked")) {
+                likeButton.removeClass("pl2").addClass("text-red-500");
+                likeCount.text(parseInt(likeCount.text()) + 1);
+              } else {
+                likeButton.removeClass("text-red-500").addClass("pl2");
+                likeCount.text(parseInt(likeCount.text()) - 1);
+              }
             } else {
-              likeButton.removeClass("text-red-500").addClass("pl2");
-              likeButton.removeClass("liked").addClass("unliked");
-              likeCount.text(parseInt(likeCount.text()) - 1);
+              // Tidak ada error, toggle state
+              if (likeButton.hasClass("liked")) {
+                likeButton.removeClass("liked").addClass("unliked");
+              } else {
+                likeButton.removeClass("unliked").addClass("liked");
+              }
             }
+
             $(".limiter").removeClass("inline-block").addClass("hidden");
           },
         });

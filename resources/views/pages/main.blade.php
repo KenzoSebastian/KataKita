@@ -9,21 +9,13 @@
   if (isset($activeUser) && $activeUser->profile_picture === null) {
       $profileDefault = getProfileDefault($activeUser->fullname);
   }
-  foreach ($allPosts as $post) {
-      if ($post->author->profile_picture === null) {
-          $post->author->profileDefault = getProfileDefault($post->author->fullname);
-      }
-      if (isset($activeUser)) {
-          $post->likes->pluck('user_id')->contains($activeUser->id) ? ($post->isLikedByActiveUser = true) : ($post->isLikedByActiveUser = false);
-      }
-  }
 @endphp
 <x-layout title="Main Page">
   <div class="desktop:pt-32 container mx-auto flex gap-10 pt-24">
     {{-- navbar --}}
     <x-navbar :profileDefault="auth()->check() && isset($profileDefault) ? $profileDefault : null" :activeUser="auth()->check() ? $activeUser->toArray() : []" :allUser="$allUser->toArray()" />
 
-    {{-- register --}}
+    {{-- register/profile side --}}
     <div class="desktop:block relative hidden w-1/4">
       @guest
         <div class="w-78 fixed bottom-2 top-32 rounded-2xl bg-cover bg-center px-8 py-10 shadow-2xl" style="background-image: url('https://picsum.photos/200/300');">
@@ -87,10 +79,10 @@
     </div>
 
     {{-- feed --}}
-    <div class="desktop:min-h-[calc(100vh-8.5rem)] desktop:w-3/4 min-h-[calc(100vh-7rem)] w-full rounded-2xl bg-white p-4 shadow-2xl">
+    <div class="desktop:min-h-[calc(100vh-8.5rem)] desktop:w-3/4 min-h-[calc(100vh-7rem)] w-full overflow-hidden rounded-2xl bg-white p-4 shadow-2xl">
       @auth
         {{-- posting form --}}
-        <form action="{{ route('create-post') }}" class="mb-6 flex flex-col gap-1" method="POST" enctype="multipart/form-data">
+        <form action="{{ route('post.store') }}" class="mb-6 flex flex-col gap-1" method="POST" enctype="multipart/form-data">
           @php
             $id = substr(md5(uniqid()), 0, 8);
             $slug = implode('-', str_split(preg_replace('/[\$\/0-9.,]/', '', bcrypt($id)), 10));
@@ -121,16 +113,16 @@
       @endauth
 
       {{-- tab feed --}}
-      <div x-data="{ activeTab: 'all' }" class="overflow-hidden">
+      <div x-data="{ activeTab: 'all' }">
         @auth
-          <div class="mb-6 flex items-center justify-center gap-10">
+          <div class="tablet:gap-10 mb-6 flex items-center justify-center gap-7">
             <!-- Tab Following Posts -->
-            <span @click="activeTab = 'following'" :class="activeTab === 'following' ? 'bg-kita/50 text-black' : 'bg-kita/5 text-gray-500'" class="inline-block cursor-pointer rounded-full px-8 py-3 text-lg font-bold transition duration-300 ease-in-out">
+            <span @click="activeTab = 'following'" :class="activeTab === 'following' ? 'bg-kita/50 text-black' : 'bg-kita/5 text-gray-500'" class="tablet:px-8 tablet:py-3 tablet:text-base desktop:text-lg inline-block cursor-pointer rounded-full px-6 py-2 text-sm font-bold transition duration-300 ease-in-out" id="following">
               Following Posts
             </span>
 
             <!-- Tab All Posts -->
-            <span @click="activeTab = 'all'" :class="activeTab === 'all' ? 'bg-kita/50 text-black' : 'bg-kita/5 text-gray-500'" class="inline-block cursor-pointer rounded-full px-8 py-3 text-lg font-bold transition duration-300 ease-in-out">
+            <span @click="activeTab = 'all'" :class="activeTab === 'all' ? 'bg-kita/50 text-black' : 'bg-kita/5 text-gray-500'" class="tablet:px-8 tablet:py-3 tablet:text-base desktop:text-lg inline-block cursor-pointer rounded-full px-6 py-2 text-sm font-bold transition duration-300 ease-in-out" id="all">
               All Posts
             </span>
           </div>
@@ -138,101 +130,84 @@
         {{-- data posts --}}
         {{-- tab following --}}
         <div x-show="activeTab === 'following'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform translate-x-full" x-transition:enter-end="opacity-100 transform translate-x-0" x-transition:leave="transition ease-in duration-300" x-transition:leave-start="opacity-100 transform translate-x-0" x-transition:leave-end="opacity-0 transform translate-x-full" class="transition">
-          following
+          <template x-if="activeTab === 'following'">
+            <div id="followingPostsContainer">
+              <x-skeleton-post count=3 />
+            </div>
+          </template>
         </div>
-
         {{-- tab allPost --}}
         <div x-show="activeTab === 'all'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform -translate-x-full" x-transition:enter-end="opacity-100 transform translate-x-0" x-transition:leave="transition ease-in duration-300" x-transition:leave-start="opacity-100 transform translate-x-0" x-transition:leave-end="opacity-0 transform -translate-x-full" class="transition">
-          @foreach ($allPosts as $post)
-            <div class="relative mb-6 rounded-xl bg-gray-100 p-4 shadow-[5px_9px_6px_-1px_rgba(0,0,0,0.30)] transition hover:bg-gray-200">
-              <!-- Header: Profile Picture and Author Info -->
-              <div class="flex items-center gap-4">
-                <!-- Profile Picture -->
-                <div class="w-15 h-15 tablet:text-xl flex items-center justify-center rounded-full bg-slate-300 text-lg font-bold shadow-lg">
-                  @if (isset($post->author->profileDefault))
-                    {{ $post->author->profileDefault }}
-                  @else
-                    <img class="h-full w-full rounded-full object-cover" src="{{ asset($post->author->profile_picture) }}" alt="profile picture">
-                  @endif
-                </div>
-                <!-- Author Info -->
-                <a href="{{ route('profile', $post->author->id) }}">
-                  <h3 class="text-lg font-bold">{{ $post->author->fullname }}</h3>
-                  <p class="text-sm text-gray-500">{{ '@' . $post->author->username }}</p>
-                </a>
-              </div>
-
-              <!-- Post Content -->
-              <div class="mt-4">
-                <p class="text-base text-gray-800">
-                  {{ Str::limit($post->content, 250) }}
-                  @if (Str::length($post->content) > 250)
-                    <a href="{{ route('show-post', $post->slug) }}" class="text-kita font-bold">Read more</a>
-                  @endif
-                </p>
-                <!-- Post Image -->
-                @isset($post->image)
-                  <img src="{{ asset($post->image) }}" alt="Post Image" class="tablet:max-h-95 desktop:max-h-110 mt-4 max-h-80 rounded-lg object-contain object-left">
-                @endisset
-
-              </div>
-
-              <!-- Post Actions: Like and Comment -->
-              <div class="mt-4 flex items-start justify-between">
-                <div class="flex justify-start gap-4">
-                  <!-- Like Button -->
-                  <div class="flex items-start gap-2">
-                    @guest
-                      <a href="{{ route('login') }}" class="hover:text-red-500">
-                        <span class="material-symbols-outlined pl2">favorite</span>
-                      </a>
-                    @endguest
-                    @auth
-                      <form action="{{ route('like-post', $post->slug) }}" method="POST" class="relative">
-                        @csrf
-                        @method('POST')
-                        <button type="submit" class="cursor-pointer">
-                          @if ($post->isLikedByActiveUser)
-                            <span class="material-symbols-outlined like-btn liked text-red-500">favorite</span>
-                          @else
-                            <span class="material-symbols-outlined like-btn unliked pl2">favorite</span>
-                          @endif
-                        </button>
-                        <span class="limiter hidden"></span>
-                      </form>
-                    @endauth
-                    <p class="text-sm">{{ $post->likes_count }}</p>
-                  </div>
-
-                  <!-- Comment Button -->
-                  <div class="flex items-start gap-2">
-                    @guest
-                      <a href="{{ route('show-post', $post->slug) }}" class="hover:text-kita transition">
-                        <span class="material-symbols-outlined pl2">chat</span>
-                      </a>
-                    @endguest
-                    @auth
-                      <a href="{{ route('show-post', $post->slug) }}" class="hover:text-kita transition">
-                        <span class="material-symbols-outlined pl2">chat</span>
-                      </a>
-                    @endauth
-                    <p class="text-sm">{{ $post->comments_count }}</p>
-                  </div>
-
-                </div>
-                <!-- Post Timestamp -->
-                <span class="block pt-4 text-right text-sm text-gray-500">{{ $post->created_at->diffForHumans() }}</span>
-              </div>
+          <template x-if="activeTab === 'all'">
+            <div id="allPostsContainer">
+              <x-skeleton-post count=5 />
             </div>
-          @endforeach
+          </template>
         </div>
       </div>
-
     </div>
   </div>
 
   <script>
     $(document).ready(function() {
+      // ajax allPost
+      const ajaxPosts = (route, container) => {
+        $.ajax({
+          url: route,
+          type: "GET",
+          success: function(data) {
+            const postsContainer = $(`#${container}`);
+            postsContainer.empty(); // Clear skeletons
+
+            if (data.error) {
+              console.error(data.message);
+              data.message === "No posts found" ?
+                postsContainer.append('<p class="text-center mt-7 tablet:mt-10 text-gray-500">No posts available.</p>') :
+                postsContainer.append('<p class="text-center mt-7 tablet:mt-10 text-gray-500">' + data.message + '</p>');
+              Swal.fire({
+                toast: true,
+                icon: 'error',
+                title: data.message,
+                timer: 3000,
+                position: 'bottom-end',
+                showConfirmButton: false,
+                background: '#131523',
+                color: '#fff',
+              });
+            } else {
+              console.log(data);
+              // Update the UI with the fetched posts
+              postsContainer.append(data); // Append the fetched posts
+            }
+          },
+          error: function(xhr, status, error) {
+            // Handle any errors here
+            console.error(error);
+            postsContainer.empty(); // Clear skeletons
+            postsContainer.append('<p class="text-center mt-7 tablet:mt-10 text-gray-500">' + error + '</p>');
+            Swal.fire({
+              toast: true,
+              icon: 'error',
+              title: error,
+              timer: 3000,
+              position: 'bottom-end',
+              showConfirmButton: false,
+              background: '#131523',
+              color: '#fff',
+            });
+          }
+        })
+      }
+      // Initial load of all posts
+      ajaxPosts("{{ route('post.index') }}", "allPostsContainer");
+
+      //tab allPost
+      $("#all").click(() => ajaxPosts("{{ route('post.index') }}", "allPostsContainer"));
+
+      //tab following
+      $("#following").click(() => ajaxPosts("{{ route('post.following') }}", "followingPostsContainer"));
+
+
       // Event listener for image preview post
       window.previewImage = function(event) {
         const imagePreview = $('#imagePreview');
@@ -352,48 +327,6 @@
       $(this).css("height", this.scrollHeight + "px");
     });
 
-    // Event listener for like button
-    $(".like-btn").click(function(e) {
-      e.preventDefault();
-      const form = $(this).closest("form");
-      const likeButton = $(this);
-      const likeCount = form.siblings("p");
-      $(".limiter").removeClass("hidden").addClass("inline-block");
-
-      if (likeButton.hasClass("liked")) {
-        likeButton.removeClass("liked").addClass("unliked");
-        likeButton.removeClass("text-red-500").addClass("pl2");
-        likeCount.text(parseInt(likeCount.text()) - 1);
-      } else {
-        likeButton.removeClass("unliked").addClass("liked");
-        likeButton.removeClass("pl2").addClass("text-red-500");
-        likeCount.text(parseInt(likeCount.text()) + 1);
-      }
-
-      $.ajax({
-        type: form.attr("method"),
-        url: form.attr("action"),
-        data: form.serialize(),
-        success: function(response) {
-          console.log(response);
-          $(".limiter").removeClass("inline-block").addClass("hidden");
-
-        },
-        error: function(xhr, status, error) {
-          console.error(error);
-          if (response.liked) {
-            likeButton.removeClass("pl2").addClass("text-red-500");
-            likeButton.removeClass("unliked").addClass("liked");
-            likeCount.text(parseInt(likeCount.text()) + 1);
-          } else {
-            likeButton.removeClass("text-red-500").addClass("pl2");
-            likeButton.removeClass("liked").addClass("unliked");
-            likeCount.text(parseInt(likeCount.text()) - 1);
-          }
-          $(".limiter").removeClass("inline-block").addClass("hidden");
-        },
-      });
-    });
     });
   </script>
 

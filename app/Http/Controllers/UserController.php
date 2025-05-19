@@ -12,9 +12,8 @@ class UserController extends Controller
         return "data profile $id";
     }
 
-    public function updateProfile(Request $request, $id)
+    public function updatePhotoProfile(Request $request, $id)
     {
-        
         $validated = $request->validate(
             [
                 'image' => 'mimes:jpeg,png,jpg,gif,svg|max:2048',
@@ -26,6 +25,15 @@ class UserController extends Controller
             ],
         );
         try {
+            $user = User::findOrFail($id);
+
+            // Hapus file lama jika ada
+            if ($user->profile_picture) {
+                // Ambil path relatif dari storage/public
+                $oldPath = str_replace('storage/', '', $user->profile_picture);
+                \Storage::delete($oldPath);
+            }
+
             if ($request->hasFile('image')) {
                 $storeFile = $request->file('image')->store('profile-pictures');
                 $validated['image'] = 'storage/' . $storeFile;
@@ -33,9 +41,10 @@ class UserController extends Controller
 
             User::where('id', $id)->update(['profile_picture' => $validated['image']]);
             return redirect()->route('beranda')->with('success', 'Profile updated successfully');
-            
         } catch (\Exception $e) {
-            return 'error';
+            return redirect()
+                ->back()
+                ->with(['error' => 'Failed to update profile. Please try again.']);
         }
     }
 }
