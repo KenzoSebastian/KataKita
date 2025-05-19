@@ -42,5 +42,5 @@
 }
 
 .limiter {
-    @apply absolute -bottom-1 -left-2 -right-2 -top-2 cursor-not-allowed rounded-full bg-transparent p-4;
+    @apply absolute -bottom-1 -left-2 -right-2 -top-2 cursor-not-allowed bg-transparent p-4;
 }

@@ -32,7 +32,7 @@
         <div class="w-78 fixed bottom-2 top-32 flex flex-col items-center justify-between overflow-hidden rounded-2xl bg-white pb-8 shadow-2xl">
           <div class="h-full w-full text-center">
             <div class="mb-17 relative h-2/5 w-full rounded-t-2xl bg-cover bg-center" style="background-image: url('https://picsum.photos/200/300');">
-              <form method="POST" enctype="multipart/form-data" id="changeProfileForm" action="{{ route('update-profile', $activeUser->id) }}" class="desktop:block -bottom-13 absolute left-1/2 mr-5 hidden w-fit -translate-x-1/2 rounded-full shadow transition">
+              <form method="POST" enctype="multipart/form-data" id="changeProfileForm" action="{{ route('profile.updatePhoto', $activeUser->id) }}" class="desktop:block -bottom-13 absolute left-1/2 mr-5 hidden w-fit -translate-x-1/2 rounded-full shadow transition">
                 <label for="changeProfile" class="w-30 h-30 group relative flex cursor-pointer items-center justify-center rounded-full bg-slate-300 text-4xl font-bold shadow-lg transition-all">
                   @if (isset($profileDefault))
                     <p class="transition group-hover:text-black/30">{{ $profileDefault }}</p>
@@ -71,7 +71,7 @@
               </div>
             </div>
           </div>
-          <a href="#" class="bg-kata hover:bg-kataDarken w-3/4 rounded-md py-3 text-center font-semibold text-white transition-colors duration-300">
+          <a href="{{ route('profile', $activeUser->id) }}" class="bg-kata hover:bg-kataDarken w-3/4 rounded-md py-3 text-center font-semibold text-white transition-colors duration-300">
             My Profile
           </a>
         </div>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Following;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -9,7 +10,10 @@ class UserController extends Controller
 {
     public function showProfile($id)
     {
-        return "data profile $id";
+        return view('pages.showProfile', [
+            'user' => User::findOrFail($id),
+            'activeUser' => auth()->user(),
+        ]);
     }
 
     public function updatePhotoProfile(Request $request, $id)
@@ -45,6 +49,73 @@ class UserController extends Controller
             return redirect()
                 ->back()
                 ->with(['error' => 'Failed to update profile. Please try again.']);
+        }
+    }
+
+    public function follow($id)
+    {
+        try {
+            $activeUser = auth()->user()->load('followings');
+            $user = User::findOrFail($id)->load('followers');
+            // cek apakah user sudah mengikuti
+            if ($activeUser->followings->contains('following_id', $user->id)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Already following this user',
+                ]);
+            }
+            // buat data following baru
+            $activeUser->followings()->create([
+                'user_id' => $activeUser->id,
+                'following_id' => $user->id,
+            ]);
+            // buat data follower baru
+            $user->followers()->create([
+                'user_id' => $user->id,
+                'follower_id' => $activeUser->id,
+            ]);
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Followed successfully',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(
+                [
+                    'status' => 'error',
+                    'message' => 'User not found',
+                ],
+                404,
+            );
+        }
+    }
+    public function unFollow($id)
+    {
+        try {
+            $activeUser = auth()->user()->load('followings');
+            $user = User::findOrFail($id)->load('followers');
+            // cek apakah user sudah mengikuti
+            if ($activeUser->followings->contains('following_id', $user->id)) {
+                // hapus data following
+                $activeUser->followings()->where('following_id', $user->id)->delete();
+                // hapus data follower
+                $user->followers()->where('follower_id', $activeUser->id)->delete();
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Unfollowed successfully',
+                ]);
+            }
+            return response()->json([
+                'status' => 'error',
+                'message' => 'You are not following this user',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(
+                [
+                    'status' => 'error',
+                    'message' => 'User not found',
+                ],
+                404,
+            );
         }
     }
 }

@@ -48,15 +48,16 @@
           {{-- following button --}}
           @auth
             @if ($activeUser->id !== $post->author->id)
-              <form action="" method="POST" class="inline-block">
+              <form method="POST" class="relative inline-block">
                 @csrf
-                @if ($activeUser->followings->contains($post->author->id))
+                @if ($activeUser->followings->contains('following_id', $post->author->id))
                   <button data-follow=true type="submit" class="follow-btn flex cursor-pointer items-center gap-1 rounded bg-gray-200 px-4 py-1 font-semibold text-gray-800 transition hover:bg-gray-300"><span class="material-symbols-outlined">
                       check
                     </span>Following</button>
                 @else
                   <button data-follow=false type="submit" class="bg-kita hover:bg-kitaDarken follow-btn cursor-pointer rounded-md px-4 py-1 font-semibold text-white transition">Follow</button>
                 @endif
+                <span class="limiter hidden"></span>
               </form>
             @endif
           @endauth
@@ -165,20 +166,66 @@
       //follower button
       $(".follow-btn").click(function(e) {
         e.preventDefault();
-        $(this).removeAttr("class");
-        if ($(this).data("follow")) {
-          $(this).addClass("bg-kita hover:bg-kitaDarken follow-btn cursor-pointer rounded-md px-4 py-1 font-semibold text-white transition");
-          $(this).html(`Follow`);
-          $(this).data("follow", false);
-        } else {
-          $(this).addClass("follow-btn flex cursor-pointer items-center gap-1 rounded bg-gray-200 px-4 py-1 font-semibold text-gray-800 transition hover:bg-gray-300");
-          $(this).html(`<span class="material-symbols-outlined">
-                      check
-                    </span>Following`);
-          $(this).data("follow", true);
-        }
-
-      })
+        const btn = $(this),
+        form = btn.closest("form");
+        const followClass = "bg-kita hover:bg-kitaDarken follow-btn cursor-pointer rounded-md px-4 py-1 font-semibold text-white transition";
+        const followingClass = "follow-btn flex cursor-pointer items-center gap-1 rounded bg-gray-200 px-4 py-1 font-semibold text-gray-800 transition hover:bg-gray-300";
+        const isFollowing = btn.data("follow");
+        const url = isFollowing ? "{{ route('profile.unfollow', $post->author->id) }}" : "{{ route('profile.follow', $post->author->id) }}";
+        btn.removeAttr("class").addClass(isFollowing ? followClass : followingClass)
+          .html(isFollowing ? "Follow" : `<span class="material-symbols-outlined">check</span>Following`);
+        $(".limiter").removeClass("hidden").addClass("inline-block");
+        $.ajax({
+          type: form.attr("method"),
+          url,
+          data: form.serialize(),
+          success: res => {
+            if (res.status === 'error') {
+              btn.removeClass(isFollowing ? followClass : followingClass)
+                .addClass(isFollowing ? followingClass : followClass)
+                .html(isFollowing ?
+                  `<span class="material-symbols-outlined">check</span>Following` :
+                  "Follow");
+              Swal.fire({
+                toast: true,
+                icon: 'error',
+                title: res.message,
+                timer: 5000,
+                position: 'bottom-end',
+                showConfirmButton: false,
+                background: '#131523',
+                color: '#fff'
+              });
+            } else {
+              btn.data("follow", !isFollowing);
+              Swal.fire({
+                toast: true,
+                icon: 'success',
+                title: res.message,
+                timer: 5000,
+                position: 'bottom-end',
+                showConfirmButton: false,
+                background: '#131523',
+                color: '#fff'
+              });
+            }
+            $(".limiter").removeClass("inline-block").addClass("hidden");
+          },
+          error: () => {
+            Swal.fire({
+              toast: true,
+              icon: 'error',
+              title: 'An error occurred while processing your request.',
+              timer: 5000,
+              position: 'bottom-end',
+              showConfirmButton: false,
+              background: '#131523',
+              color: '#fff'
+            });
+            $(".limiter").removeClass("inline-block").addClass("hidden");
+          }
+        });
+      });
 
       //comment button
       const formComment = $("#commentform");

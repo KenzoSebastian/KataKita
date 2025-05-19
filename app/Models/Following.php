@@ -10,5 +10,5 @@ class Following extends Model
     /** @use HasFactory<\Database\Factories\FollowingFactory> */
     use HasFactory;
 
-    protected $fillable = ["user_id", "follower_id"];
+    protected $fillable = ['user_id', 'following_id'];
 }

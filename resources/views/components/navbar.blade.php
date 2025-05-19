@@ -64,7 +64,7 @@
     {{-- profile navigation:desktop --}}
     @auth
       <div class="flex items-center">
-        <a href="#" class="hover:bg-light desktop:block mr-5 hidden rounded-full shadow transition">
+        <a href="{{ route('profile', $activeUser['id']) }}" class="hover:bg-light desktop:block mr-5 hidden rounded-full shadow transition">
           <div class="bg-light/75 flex h-12 w-12 items-center justify-center rounded-full text-lg font-bold shadow-lg">
             @if (isset($profileDefault))
               {{ $profileDefault }}

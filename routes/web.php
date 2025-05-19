@@ -17,7 +17,9 @@ Route::controller(PostController::class)->group(function () {
 
 Route::controller(UserController::class)->group(function () {
     Route::get('/profile/{id}', 'showProfile')->name('profile');
-    Route::patch('/profile/{id}/update', 'updatePhotoProfile')->name('update-profile');
+    Route::patch('/profile/{id}/updatePhoto', 'updatePhotoProfile')->name('profile.updatePhoto');
+    Route::post('/profile/{id}/follow', 'follow')->name('profile.follow');
+    Route::post('/profile/{id}/unfollow', 'unfollow')->name('profile.unfollow');
 });
 
 Route::controller(AuthController::class)->group(function () {
