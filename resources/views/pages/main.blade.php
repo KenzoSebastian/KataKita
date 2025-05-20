@@ -31,8 +31,8 @@
       @auth
         <div class="w-78 fixed bottom-2 top-32 flex flex-col items-center justify-between overflow-hidden rounded-2xl bg-white pb-8 shadow-2xl">
           <div class="h-full w-full text-center">
-            <div class="mb-17 relative h-2/5 w-full rounded-t-2xl bg-cover bg-center" style="background-image: url('https://picsum.photos/200/300');">
-              <form method="POST" enctype="multipart/form-data" id="changeProfileForm" action="{{ route('profile.updatePhoto', $activeUser->id) }}" class="desktop:block -bottom-13 absolute left-1/2 mr-5 hidden w-fit -translate-x-1/2 rounded-full shadow transition">
+            <div class="mb-17 relative h-2/5 w-full rounded-t-2xl bg-cover bg-center" style="background-image: url('{{ $activeUser->banner ? asset($activeUser->banner) : 'https://picsum.photos/900/300' }}');">
+              <form method="POST" enctype="multipart/form-data" id="changeProfileForm" action="{{ route('profile.updatePhoto', $activeUser->id) }}" class="desktop:block -bottom-13 absolute left-1/2 mr-5 hidden w-fit -translate-x-1/2 rounded-full border-4 border-white shadow transition">
                 <label for="changeProfile" class="w-30 h-30 group relative flex cursor-pointer items-center justify-center rounded-full bg-slate-300 text-4xl font-bold shadow-lg transition-all">
                   @if (isset($profileDefault))
                     <p class="transition group-hover:text-black/30">{{ $profileDefault }}</p>
@@ -59,7 +59,11 @@
             </div>
             <h2 class="text-lg font-bold">{{ $activeUser->fullname }}</h2>
             <strong class="mb-4 block text-sm font-normal">{{ "@{$activeUser->username}" }}</strong>
-            <p class="text-base">{{ $activeUser['bio'] }}</p>
+            <p class="text-base">{{ Str::limit($activeUser->bio, 75) }}
+              @if (Str::length($activeUser->bio) > 50)
+                <a href="{{ route('profile', $activeUser->id) }}" class="text-kita hover:underline font-bold">Read more</a>
+              @endif
+            </p>
             <div class="mt-8 flex justify-center gap-20">
               <div class="flex flex-col items-center">
                 <p class="text-lg font-bold"> {{ $activeUser->followers()->count() }}</p>
@@ -175,7 +179,6 @@
                 color: '#fff',
               });
             } else {
-              console.log(data);
               // Update the UI with the fetched posts
               postsContainer.append(data); // Append the fetched posts
             }

@@ -41,6 +41,37 @@ class PostController extends Controller
         }
     }
 
+    public function postsByUser($id)
+{
+    try {
+        $posts = Post::with(['author', 'likes'])
+            ->withCount(['likes', 'comments'])
+            ->where('author_id', $id)
+            ->latest('created_at')
+            ->get();
+
+        if ($posts->isEmpty()) {
+            return response()->json([
+                'message' => 'No posts found',
+                'error' => true,
+            ]);
+        }
+
+        // Jika ingin kirim activeUser juga (jika login)
+        if (auth()->check()) {
+            $activeUser = auth()->user()->load(['followers', 'followings']);
+            return view('components.post-card', compact('posts', 'activeUser'));
+        }
+
+        return view('components.post-card', compact('posts'));
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Failed to fetch user posts',
+            'error' => true,
+        ]);
+    }
+}
+
     public function postByFollowing()
     {
         try {

@@ -40,7 +40,7 @@
       <p class="text-base text-gray-800">
         {{ Str::limit($post->content, 250) }}
         @if (Str::length($post->content) > 250)
-          <a href="{{ route('post.show', $post->slug) }}" class="text-kita font-bold">Read more</a>
+          <a href="{{ route('post.show', $post->slug) }}" class="text-kita hover:underline font-bold">Read more</a>
         @endif
       </p>
       <!-- Post Image -->

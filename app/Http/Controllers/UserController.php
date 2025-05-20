@@ -10,10 +10,14 @@ class UserController extends Controller
 {
     public function showProfile($id)
     {
-        return view('pages.showProfile', [
-            'user' => User::findOrFail($id),
-            'activeUser' => auth()->user(),
-        ]);
+        $user = User::findOrFail($id)->loadCount(['followers', 'followings', 'posts']);
+        if (auth()->check()) {
+            $activeUser = auth()
+                ->user()
+                ->load(['followers', 'followings']);
+            return view('pages.showProfile', compact(['activeUser', 'user']));
+        }
+        return view('pages.showProfile', compact(['user']));
     }
 
     public function updatePhotoProfile(Request $request, $id)
@@ -44,11 +48,76 @@ class UserController extends Controller
             }
 
             User::where('id', $id)->update(['profile_picture' => $validated['image']]);
-            return redirect()->route('beranda')->with('success', 'Profile updated successfully');
+            return redirect()->back()->with('success', 'Profile updated successfully');
         } catch (\Exception $e) {
             return redirect()
                 ->back()
                 ->with(['error' => 'Failed to update profile. Please try again.']);
+        }
+    }
+
+    public function updateBannerProfile(Request $request, $id)
+    {
+        $validated = $request->validate(
+            [
+                'banner' => 'mimes:jpeg,png,jpg,gif,svg|max:4096',
+            ],
+            [
+                'banner.mimes' => 'Banner must be a jpeg, png, jpg, gif, or svg',
+                'banner.max' => 'Banner must be less than 4MB',
+            ],
+        );
+        try {
+            $user = User::findOrFail($id);
+            // Hapus banner lama jika ada
+            if ($user->banner_picture) {
+                $oldPath = str_replace('storage/', '', $user->banner_picture);
+                \Storage::delete($oldPath);
+            }
+            // Simpan banner baru
+            if ($request->hasFile('banner')) {
+                $storeFile = $request->file('banner')->store('banner-images');
+                $validated['banner'] = 'storage/' . $storeFile;
+            }
+
+            User::where('id', $id)->update($validated);
+            return redirect()->back()->with('success', 'Banner updated successfully');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to update banner. Please try again.');
+        }
+    }
+
+    public function updateBio(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'bio' => 'nullable|string|max:160',
+        ]);
+        try {
+            $user = User::findOrFail($id);
+            $user->bio = $validated['bio'];
+            $user->save();
+
+            // Untuk AJAX response
+            if ($request->ajax()) {
+                return response()->json([
+                    'status' => 'success',
+                    'bio' => $user->bio,
+                    'message' => 'Bio updated successfully',
+                ]);
+            }
+
+            return redirect()->back()->with('success', 'Bio updated successfully');
+        } catch (\Exception $e) {
+            if ($request->ajax()) {
+                return response()->json(
+                    [
+                        'status' => 'error',
+                        'message' => 'Failed to update bio. Please try again.',
+                    ],
+                    500,
+                );
+            }
+            return redirect()->back()->with('error', 'Failed to update bio. Please try again.');
         }
     }
 

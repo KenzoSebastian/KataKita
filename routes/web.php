@@ -14,10 +14,13 @@ Route::controller(PostController::class)->group(function () {
     Route::post('/post/{post}/like', 'likePost')->name('post.like');
     Route::post('/post/{post}/comment', 'commentPost')->name('post.comment');
 });
+Route::get('/user/{id}/posts', [PostController::class, 'postsByUser'])->name('user.posts');
 
 Route::controller(UserController::class)->group(function () {
     Route::get('/profile/{id}', 'showProfile')->name('profile');
     Route::patch('/profile/{id}/updatePhoto', 'updatePhotoProfile')->name('profile.updatePhoto');
+    Route::patch('/profile/{id}/updateBanner', 'updateBannerProfile')->name('profile.updateBanner');
+    Route::patch('/profile/{id}/updateBio', [UserController::class, 'updateBio'])->name('profile.updateBio');
     Route::post('/profile/{id}/follow', 'follow')->name('profile.follow');
     Route::post('/profile/{id}/unfollow', 'unfollow')->name('profile.unfollow');
 });
