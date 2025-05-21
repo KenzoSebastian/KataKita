@@ -44,3 +44,11 @@
 .limiter {
     @apply absolute -bottom-1 -left-2 -right-2 -top-2 cursor-not-allowed bg-transparent p-4;
 }
+
+.follow-btn-class {
+    @apply bg-kita hover:bg-kitaDarken cursor-pointer rounded-md tablet:px-4 px-3 py-1 font-semibold text-sm tablet:text-base text-white transition;
+}
+
+.following-btn-class {
+    @apply flex items-center gap-1 rounded bg-gray-200 tablet:px-4 tablet:py-1 px-1 py-0.5 font-semibold text-gray-800 text-sm tablet:text-base transition hover:bg-gray-300;
+}

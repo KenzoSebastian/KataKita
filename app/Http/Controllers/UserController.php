@@ -89,24 +89,25 @@ class UserController extends Controller
 
     public function updateBio(Request $request, $id)
     {
-        $validated = $request->validate([
-            'bio' => 'nullable|string|max:160',
-        ]);
+        $validated = $request->validate(
+            [
+                'bio' => 'nullable|string|max:100',
+            ],
+            [
+                'bio.string' => 'Bio must be a string',
+                'bio.max' => 'Bio must be less than 100 characters',
+            ],
+        );
         try {
             $user = User::findOrFail($id);
             $user->bio = $validated['bio'];
             $user->save();
 
-            // Untuk AJAX response
-            if ($request->ajax()) {
-                return response()->json([
-                    'status' => 'success',
-                    'bio' => $user->bio,
-                    'message' => 'Bio updated successfully',
-                ]);
-            }
-
-            return redirect()->back()->with('success', 'Bio updated successfully');
+            return response()->json([
+                'status' => 'success',
+                'bio' => $user->bio,
+                'message' => 'Bio updated successfully',
+            ]);
         } catch (\Exception $e) {
             if ($request->ajax()) {
                 return response()->json(
@@ -125,7 +126,7 @@ class UserController extends Controller
     {
         try {
             $activeUser = auth()->user()->load('followings');
-            $user = User::findOrFail($id)->load('followers');
+            $user = User::findOrFail($id)->load('followers')->loadCount('followers');
             // cek apakah user sudah mengikuti
             if ($activeUser->followings->contains('following_id', $user->id)) {
                 return response()->json([
@@ -145,6 +146,7 @@ class UserController extends Controller
             ]);
             return response()->json([
                 'status' => 'success',
+                'followers_count' => $user->followers_count + 1,
                 'message' => 'Followed successfully',
             ]);
         } catch (\Exception $e) {
@@ -161,7 +163,7 @@ class UserController extends Controller
     {
         try {
             $activeUser = auth()->user()->load('followings');
-            $user = User::findOrFail($id)->load('followers');
+            $user = User::findOrFail($id)->load('followers')->loadCount('followers');
             // cek apakah user sudah mengikuti
             if ($activeUser->followings->contains('following_id', $user->id)) {
                 // hapus data following
@@ -170,6 +172,7 @@ class UserController extends Controller
                 $user->followers()->where('follower_id', $activeUser->id)->delete();
                 return response()->json([
                     'status' => 'success',
+                    'followers_count' => $user->followers_count - 1,
                     'message' => 'Unfollowed successfully',
                 ]);
             }
@@ -185,6 +188,79 @@ class UserController extends Controller
                 ],
                 404,
             );
+        }
+    }
+
+    public function followers($id)
+    {
+        $user = User::findOrFail($id);
+
+        return view('pages.follow', [
+            'title' => 'Followers',
+            'user' => $user,
+        ]);
+    }
+    public function followings($id)
+    {
+        $user = User::findOrFail($id);
+        return view('pages.follow', [
+            'title' => 'Following',
+            'user' => $user,
+        ]);
+    }
+    public function followersData($id)
+    {
+        try {
+            $user = User::findOrFail($id)->load('followersData')->loadCount('followers');
+            $followers = $user->followersData;
+
+            if (request()->ajax()) {
+                return view('components.follow-list', [
+                    'list' => $followers,
+                    'type' => 'followers',
+                    'length' => $user->followers_count,
+                ]);
+            }
+            return redirect()->route('profile.followers', ['id' => $user->id]);
+        } catch (\Exception $e) {
+            if (request()->ajax()) {
+                return response()->json(
+                    [
+                        'status' => 'error',
+                        'message' => 'Failed to load followers data.',
+                    ],
+                    500,
+                );
+            }
+            return response('<div class="py-8 text-center text-gray-400">Failed to load followers data.</div>', 500);
+        }
+    }
+
+    public function followingsData($id)
+    {
+        try {
+            $user = User::findOrFail($id)->load('followingsData')->loadCount('followings');
+            $followings = $user->followingsData;
+            if (request()->ajax()) {
+                return view('components.follow-list', [
+                    'list' => $followings,
+                    'type' => 'followings',
+                    'length' => $user->followings_count,
+                ]);
+            }
+            return redirect()->route('profile.followings', ['id' => $user->id]);
+
+        } catch (\Exception $e) {
+            if (request()->ajax()) {
+                return response()->json(
+                    [
+                        'status' => 'error',
+                        'message' => 'Failed to load followings data.',
+                    ],
+                    500,
+                );
+            }
+            return response('<div class="py-8 text-center text-gray-400">Failed to load followings data.</div>', 500);
         }
     }
 }

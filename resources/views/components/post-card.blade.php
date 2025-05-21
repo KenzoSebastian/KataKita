@@ -21,13 +21,13 @@
     <!-- Header: Profile Picture and Author Info -->
     <div class="flex items-center gap-4">
       <!-- Profile Picture -->
-      <div class="w-15 h-15 tablet:text-xl flex items-center justify-center rounded-full bg-slate-300 text-lg font-bold shadow-lg">
+      <a href="{{ route('profile', $post->author->id) }}" class="w-15 h-15 tablet:text-xl flex items-center justify-center rounded-full bg-slate-300 text-lg font-bold shadow-lg">
         @if (isset($post->author->profileDefault))
           {{ $post->author->profileDefault }}
         @else
           <img class="h-full w-full rounded-full object-cover" src="{{ asset($post->author->profile_picture) }}" alt="profile picture">
         @endif
-      </div>
+      </a>
       <!-- Author Info -->
       <a href="{{ route('profile', $post->author->id) }}">
         <h3 class="text-lg font-bold">{{ $post->author->fullname }}</h3>

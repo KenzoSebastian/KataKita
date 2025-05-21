@@ -1,9 +1,9 @@
 <nav class="desktop:px-7 fixed left-0 right-0 top-0 z-10 flex w-full justify-between bg-white px-1 py-3 shadow">
   {{-- Logo --}}
-  <a href="{{ route('beranda') }}" class="desktop:text-5xl font-jolly mr-2 flex items-center text-2xl">
-    <img src="{{ asset('img/logo.png') }}" alt="logo" class="w-15 desktop:w-24 desktop:mr-4 mr-1.5">
-    <div class="desktop:flex-row flex flex-col">
-      <span class="text-kata desktop:mr-3">Kata</span>
+  <a href="{{ route('beranda') }}" class="desktop:text-5xl tablet:text-3xl font-jolly mr-2 flex items-center text-2xl">
+    <img src="{{ asset('img/logo.png') }}" alt="logo" class="w-15 tablet:w-20 desktop:w-24 desktop:mr-4 tablet:mr-2 mr-1.5">
+    <div class="tablet:flex-row flex flex-col">
+      <span class="text-kata tablet:mr-1.5 desktop:mr-3">Kata</span>
       <span class="text-kita">Kita</span>
     </div>
   </a>
@@ -25,42 +25,6 @@
       <a href="{{ route('login') }}" class="bg-kita hover:bg-kitaDarken desktop:block mr-4 hidden rounded-lg px-7 py-1.5 text-white shadow transition">
         Login</a>
     @endguest
-    {{-- mobile --}}
-    <div x-data="{ open: false }" class="tablet:ml-3 desktop:ml-5 desktop:hidden relative ml-1">
-      <button @click="open = !open" class="flex h-10 w-10 cursor-pointer flex-col items-center justify-between p-2">
-        <!-- Bar 1 -->
-        <span :class="open ? 'rotate-45 translate-y-2.5' : ''" class="block h-1 w-8 origin-center rounded-full bg-gray-800 transition-transform duration-300 ease-in-out"></span>
-        <!-- Bar 2 -->
-        <span :class="open ? 'opacity-0' : ''" class="block h-1 w-8 rounded-full bg-gray-800 transition-all duration-300 ease-in-out"></span>
-        <!-- Bar 3 -->
-        <span :class="open ? '-rotate-45 -translate-y-2.5' : ''" class="block h-1 w-8 origin-center rounded-full bg-gray-800 transition-transform duration-300 ease-in-out"></span>
-      </button>
-      <div x-show="open" @click.away="open = false" x-transition.scale.origin.top class="absolute right-0 top-12 z-20 w-48 overflow-hidden rounded-lg bg-slate-100 shadow-lg">
-        @guest
-          <a href="{{ route('login') }}" class="block px-6 py-4 text-gray-800 transition hover:bg-gray-200">Login</a>
-        @endguest
-
-        {{-- profile navigation:mobile --}}
-        @auth
-          <a href="#" class="flex items-start px-6 py-4 text-gray-800 transition hover:bg-gray-200">
-            <div class="mr-1 inline-block">
-              <span class="material-symbols-outlined">person</span>
-            </div>
-            Profile
-          </a>
-          <form action="{{ route('logout') }}" method="POST" id="logoutFormMobile">
-            @csrf
-            <button type="submit" class="flex w-full cursor-pointer items-start px-6 py-4 text-start text-gray-800 transition hover:bg-gray-200">
-              <div class="mr-1 inline-block">
-                <span class="material-symbols-outlined">logout</span>
-              </div>
-              Logout
-            </button>
-          </form>
-        @endauth
-      </div>
-    </div>
-
     {{-- profile navigation:desktop --}}
     @auth
       <div class="flex items-center">
@@ -80,6 +44,43 @@
         </form>
       </div>
     @endauth
+
+    {{-- mobile --}}
+    <div x-data="{ open: false }" class="tablet:ml-3 desktop:ml-5 desktop:hidden relative ml-1">
+      {{-- hamburger --}}
+      <button @click="open = !open" class="flex h-10 w-10 cursor-pointer flex-col items-center justify-between p-2">
+        <!-- Bar 1 -->
+        <span :class="open ? 'rotate-45 translate-y-2.5' : ''" class="block h-1 w-8 origin-center rounded-full bg-gray-800 transition-transform duration-300 ease-in-out"></span>
+        <!-- Bar 2 -->
+        <span :class="open ? 'opacity-0' : ''" class="block h-1 w-8 rounded-full bg-gray-800 transition-all duration-300 ease-in-out"></span>
+        <!-- Bar 3 -->
+        <span :class="open ? '-rotate-45 -translate-y-2.5' : ''" class="block h-1 w-8 origin-center rounded-full bg-gray-800 transition-transform duration-300 ease-in-out"></span>
+      </button>
+      <div x-show="open" @click.away="open = false" x-transition.scale.origin.top class="absolute right-0 top-12 z-20 w-48 overflow-hidden rounded-lg bg-slate-100 shadow-lg">
+        {{-- profile navigation:mobile --}}
+        @guest
+          <a href="{{ route('login') }}" class="block px-6 py-4 text-gray-800 transition hover:bg-gray-200">Login</a>
+        @endguest
+
+        @auth
+          <a href="{{ route('profile', $activeUser['id']) }}" class="flex items-start px-6 py-4 text-gray-800 transition hover:bg-gray-200">
+            <div class="mr-1 inline-block">
+              <span class="material-symbols-outlined">person</span>
+            </div>
+            Profile
+          </a>
+          <form action="{{ route('logout') }}" method="POST" id="logoutFormMobile">
+            @csrf
+            <button type="submit" class="flex w-full cursor-pointer items-start px-6 py-4 text-start text-gray-800 transition hover:bg-gray-200">
+              <div class="mr-1 inline-block">
+                <span class="material-symbols-outlined">logout</span>
+              </div>
+              Logout
+            </button>
+          </form>
+        @endauth
+      </div>
+    </div>
   </div>
 </nav>
 

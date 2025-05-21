@@ -33,13 +33,13 @@
         <!-- Header: Profile Picture and Author Info -->
         <div class="tablet:justify-start tablet:gap-4 flex items-center justify-between gap-2">
           <!-- Profile Picture -->
-          <div class="w-15 h-15 tablet:text-xl flex items-center justify-center rounded-full bg-slate-300 text-lg font-bold shadow-lg">
+          <a href="{{ route('profile', $post->author->id) }}" class="w-15 h-15 tablet:text-xl flex items-center justify-center rounded-full bg-slate-300 text-lg font-bold shadow-lg">
             @if (isset($post->author->profileDefault))
               {{ $post->author->profileDefault }}
             @else
               <img class="h-full w-full rounded-full object-cover" src="{{ asset($post->author->profile_picture) }}" alt="profile picture">
             @endif
-          </div>
+          </a>
           <!-- Author Info -->
           <a href="{{ route('profile', $post->author->id) }}">
             <h3 class="text-lg font-bold">{{ $post->author->fullname }}</h3>
@@ -51,11 +51,11 @@
               <form method="POST" class="relative inline-block">
                 @csrf
                 @if ($activeUser->followings->contains('following_id', $post->author->id))
-                  <button data-follow=true type="submit" class="follow-btn flex cursor-pointer items-center gap-1 rounded bg-gray-200 px-4 py-1 font-semibold text-gray-800 transition hover:bg-gray-300"><span class="material-symbols-outlined">
+                  <button data-follow=true type="submit" class="follow-btn following-btn-class"><span class="material-symbols-outlined">
                       check
                     </span>Following</button>
                 @else
-                  <button data-follow=false type="submit" class="bg-kita hover:bg-kitaDarken follow-btn cursor-pointer rounded-md px-4 py-1 font-semibold text-white transition">Follow</button>
+                  <button data-follow=false type="submit" class="follow-btn follow-btn-class">Follow</button>
                 @endif
                 <span class="limiter hidden"></span>
               </form>
@@ -113,13 +113,13 @@
           <input type="hidden" value="{{ $post->id }}" name="post_id">
           <input type="hidden" value="{{ $activeUser->id }}" name="user_id">
           <div class="{{ $errors->any() ? 'items-start' : 'items-center' }} flex gap-4">
-            <div class="w-15 h-15 tablet:text-xl flex items-center justify-center rounded-full bg-slate-300 text-lg font-bold shadow-lg">
+            <a href="{{ route('profile', $activeUser->id) }}" class="w-15 h-15 tablet:text-xl flex items-center justify-center rounded-full bg-slate-300 text-lg font-bold shadow-lg">
               @if (isset($profileDefault))
                 <p class="transition group-hover:text-black/30">{{ $profileDefault }}</p>
               @else
                 <img class="h-full w-full rounded-full object-cover" src="{{ asset($activeUser->profile_picture) }}" alt="profile picture">
               @endif
-            </div>
+            </a>
             <div class="flex-1">
               <input type="text" name="content" placeholder="Write a comment..." class="{{ $errors->any() ? 'border-red-500 border-2' : 'border border-gray-300' }} w-full rounded-xl p-2 focus:outline-none focus:ring focus:ring-black" required autocomplete="off">
               @if ($errors->any())
@@ -137,13 +137,13 @@
         @if ($post->comments_count > 0)
           @foreach ($post->comments as $comment)
             <div class="mt-4 flex gap-4 rounded-xl bg-gray-50 p-4 shadow-[5px_9px_6px_-1px_rgba(0,0,0,0.30)] hover:bg-gray-100">
-              <div class="w-15 h-15 tablet:text-xl flex shrink-0 items-center justify-center rounded-full bg-slate-300 text-lg font-bold shadow-lg">
+              <a href="{{ route('profile', $comment->user->id) }}" class="w-15 h-15 tablet:text-xl flex shrink-0 items-center justify-center rounded-full bg-slate-300 text-lg font-bold shadow-lg">
                 @if (isset($comment->user->profileDefault))
                   {{ $comment->user->profileDefault }}
                 @else
                   <img class="h-full w-full rounded-full object-cover" src="{{ asset($comment->user->profile_picture) }}" alt="profile picture">
                 @endif
-              </div>
+              </a>
               <div class="flex-1">
                 <a class="block w-fit" href="{{ route('profile', $comment->user->id) }}">
                   <h3 class="w-fit text-lg font-bold">{{ $comment->user->fullname }}</h3>
@@ -167,13 +167,13 @@
       $(".follow-btn").click(function(e) {
         e.preventDefault();
         const btn = $(this),
-        form = btn.closest("form");
-        const followClass = "bg-kita hover:bg-kitaDarken follow-btn cursor-pointer rounded-md px-4 py-1 font-semibold text-white transition";
-        const followingClass = "follow-btn flex cursor-pointer items-center gap-1 rounded bg-gray-200 px-4 py-1 font-semibold text-gray-800 transition hover:bg-gray-300";
-        const isFollowing = btn.data("follow");
-        const url = isFollowing ? "{{ route('profile.unfollow', $post->author->id) }}" : "{{ route('profile.follow', $post->author->id) }}";
-        btn.removeAttr("class").addClass(isFollowing ? followClass : followingClass)
-          .html(isFollowing ? "Follow" : `<span class="material-symbols-outlined">check</span>Following`);
+          form = btn.closest("form");
+        const followClass = "follow-btn follow-btn-class";
+        const followingClass = "follow-btn following-btn-class";
+        const isNotFollowing = btn.data("follow");
+        const url = isNotFollowing ? "{{ route('profile.unfollow', $post->author->id) }}" : "{{ route('profile.follow', $post->author->id) }}";
+        btn.removeAttr("class").addClass(isNotFollowing ? followClass : followingClass)
+          .html(isNotFollowing ? "Follow" : `<span class="material-symbols-outlined">check</span>Following`);
         $(".limiter").removeClass("hidden").addClass("inline-block");
         $.ajax({
           type: form.attr("method"),
@@ -181,9 +181,9 @@
           data: form.serialize(),
           success: res => {
             if (res.status === 'error') {
-              btn.removeClass(isFollowing ? followClass : followingClass)
-                .addClass(isFollowing ? followingClass : followClass)
-                .html(isFollowing ?
+              btn.removeClass(isNotFollowing ? followClass : followingClass)
+                .addClass(isNotFollowing ? followingClass : followClass)
+                .html(isNotFollowing ?
                   `<span class="material-symbols-outlined">check</span>Following` :
                   "Follow");
               Swal.fire({
@@ -197,7 +197,7 @@
                 color: '#fff'
               });
             } else {
-              btn.data("follow", !isFollowing);
+              btn.data("follow", !isNotFollowing);
               Swal.fire({
                 toast: true,
                 icon: 'success',

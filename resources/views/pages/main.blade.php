@@ -61,18 +61,18 @@
             <strong class="mb-4 block text-sm font-normal">{{ "@{$activeUser->username}" }}</strong>
             <p class="text-base">{{ Str::limit($activeUser->bio, 75) }}
               @if (Str::length($activeUser->bio) > 50)
-                <a href="{{ route('profile', $activeUser->id) }}" class="text-kita hover:underline font-bold">Read more</a>
+                <a href="{{ route('profile', $activeUser->id) }}" class="text-kita font-bold hover:underline">Read more</a>
               @endif
             </p>
             <div class="mt-8 flex justify-center gap-20">
-              <div class="flex flex-col items-center">
+              <a href="{{ route('profile.followers', ['id' => $activeUser->id]) }}" class="flex flex-col items-center">
                 <p class="text-lg font-bold"> {{ $activeUser->followers()->count() }}</p>
                 <p class="text-base">Follower</p>
-              </div>
-              <div class="flex flex-col items-center">
+              </a>
+              <a href="{{ route('profile.followings', ['id' => $activeUser->id]) }}" class="flex flex-col items-center">
                 <p class="text-lg font-bold"> {{ $activeUser->followings()->count() }}</p>
                 <p class="text-base">Following</p>
-              </div>
+              </a>
             </div>
           </div>
           <a href="{{ route('profile', $activeUser->id) }}" class="bg-kata hover:bg-kataDarken w-3/4 rounded-md py-3 text-center font-semibold text-white transition-colors duration-300">

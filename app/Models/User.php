@@ -53,7 +53,7 @@ class User extends Authenticatable
     {
         return $this->hasMany(Following::class);
     }
-    public function followingData()
+    public function followingsData()
     {
         return $this->hasManyThrough(User::class, Following::class, "user_id", "id", "id", "following_id");
     }

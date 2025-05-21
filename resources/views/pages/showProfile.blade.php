@@ -92,13 +92,13 @@
       </div>
 
       {{-- Profile Info --}}
-      <div class="tablet:pl-48 desktop:pl-60 tablet:pt-6 desktop:pt-8 tablet:pr-10 desktop:pr-15 bg-kita relative pb-6 pl-40 pr-5 pt-4 text-white">
+      <div class="tablet:pl-48 desktop:pl-60 tablet:pt-6 desktop:pt-8 tablet:pr-10 desktop:pr-15 bg-kata relative pb-6 pl-40 pr-5 pt-4 text-white">
         <div class="tablet:flex-row tablet:items-end tablet:justify-between flex flex-col gap-2">
           <div>
             <h2 class="tablet:text-2xl desktop:text-3xl text-lg font-bold">{{ $user->fullname }}</h2>
             <div class="tablet:text-base desktop:text-lg text-xs text-gray-200">{{ '@' . $user->username }}</div>
             <div class="tablet:text-sm desktop:text-base mt-1 flex items-center gap-2 text-xs text-gray-100">
-              <span id="userBio" class="inline-block max-w-full tablet:max-w-3/4">{{ $user->bio }}</span>
+              <span id="userBio" class="tablet:max-w-90 desktop:max-w-120 inline-block max-w-full">{{ $user->bio }}</span>
               @if (isset($activeUser) && $isSameLikeActiveUser)
                 <button id="editBioBtn" class="hover:bg-kata cursor-pointer rounded-full p-2 transition-all duration-300" title="Edit Bio" type="button">
                   <svg version="1.0" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="15px" height="15px" viewBox="0 0 64 64" enable-background="new 0 0 64 64" xml:space="preserve" fill="#ffffff" stroke="#ffffff">
@@ -114,14 +114,35 @@
               @endif
             </div>
           </div>
-          <div class="tablet:justify-end tablet:mt-0 mt-4 flex justify-start gap-8">
-            <div class="flex flex-col items-center">
-              <div class="tablet:text-xl desktop:text-2xl text-base font-bold">{{ $user->followers_count ?? 0 }}</div>
-              <div class="tablet:text-sm text-xs">Pengikut</div>
-            </div>
-            <div class="flex flex-col items-center">
-              <div class="tablet:text-xl desktop:text-2xl text-base font-bold">{{ $user->followings_count ?? 0 }}</div>
-              <div class="tablet:text-sm text-xs">Mengikuti</div>
+
+          {{-- Follow --}}
+          <div class="tablet:justify-end tablet:mt-0 tablet:flex-col tablet:items-end mt-5 flex flex-row-reverse items-center justify-start gap-5">
+            @auth
+              @if ($activeUser->id !== $user->id)
+                <form method="POST">
+                  @csrf
+                  @if ($activeUser->followings->contains('following_id', $user->id))
+                    <button data-follow="true" type="submit" class="follow-btn following-btn-class">
+                      <span class="material-symbols-outlined">check</span>Following
+                    </button>
+                  @else
+                    <button data-follow="false" type="submit" class="follow-btn follow-btn-class">
+                      Follow
+                    </button>
+                  @endif
+                  <span class="limiter hidden"></span>
+                </form>
+              @endif
+            @endauth
+            <div class="flex w-full justify-start gap-8">
+              <a href="{{ route('profile.followers', ['id' => $user->id]) }}" class="flex flex-col items-center">
+                <div class="tablet:text-xl desktop:text-2xl text-base font-bold" id="followersCount">{{ $user->followers_count ?? 0 }}</div>
+                <div class="tablet:text-sm text-xs">Follower</div>
+              </a>
+              <a href="{{ route('profile.followings', ['id' => $user->id]) }}" class="flex flex-col items-center">
+                <div class="tablet:text-xl desktop:text-2xl text-base font-bold" id="followingsCount">{{ $user->followings_count ?? 0 }}</div>
+                <div class="tablet:text-sm text-xs">Following</div>
+              </a>
             </div>
           </div>
         </div>
@@ -285,20 +306,37 @@
           inputLabel: 'Your Bio',
           inputValue: currentBio,
           inputAttributes: {
-            maxlength: 160,
+            maxlength: 100,
             autocapitalize: 'off',
             autocorrect: 'off'
           },
           showCancelButton: true,
           confirmButtonText: 'Save',
           cancelButtonText: 'Cancel',
-          inputValidator: (value) => {
-            if (value.length > 160) {
-              return 'Bio must be 160 characters or less';
-            }
+          didOpen: () => {
+            const textarea = Swal.getInput();
+            // Tambahkan counter di bawah textarea
+            const counter = $('<div id="bio-char-counter" class="text-xs mr-9 text-right mt-1 text-gray-400"></div>');
+            counter.text(`${textarea.value.length}/100`);
+            $(textarea).after(counter);
+
+            // Event listener pakai jQuery
+            $(textarea).on('input', function() {
+              counter.text(`${this.value.length}/100`);
+            });
           }
         }).then((result) => {
           if (result.isConfirmed) {
+            Swal.fire({
+              title: 'Updating Bio...',
+              text: 'Please wait while we update your bio.',
+              allowOutsideClick: false,
+              allowEscapeKey: false,
+              showConfirmButton: false,
+              didOpen: () => {
+                Swal.showLoading();
+              }
+            });
             $.ajax({
               url: "{{ route('profile.updateBio', ['id' => $user->id]) }}",
               type: "PATCH",
@@ -307,6 +345,7 @@
                 _token: "{{ csrf_token() }}"
               },
               success: function(res) {
+                console.log(res);
                 if (res.status === 'success') {
                   $('#userBio').text(res.bio);
                   Swal.fire({
@@ -336,6 +375,71 @@
                 Swal.fire('Error', xhr.responseJSON?.message || 'Failed to update bio', 'error');
               }
             });
+          }
+        });
+      });
+
+      // event listener for follow/unfollow
+      $('.follow-btn').click(function(e) {
+        e.preventDefault();
+        const btn = $(this);
+        const form = btn.closest('form');
+        const followClass = "follow-btn follow-btn-class";
+        const followingClass = "follow-btn following-btn-class";
+        const isNotFollowing = btn.data("follow");
+        const url = isNotFollowing ? "{{ route('profile.unfollow', $user->id) }}" : "{{ route('profile.follow', $user->id) }}";
+        btn.removeAttr("class").addClass(isNotFollowing ? followClass : followingClass)
+          .html(isNotFollowing ? "Follow" : `<span class="material-symbols-outlined">check</span>Following`);
+        $(".limiter").removeClass("hidden").addClass("inline-block");
+        $.ajax({
+          type: "POST",
+          url: url,
+          data: form.serialize(),
+          success: function(res) {
+            if (res.status === 'error') {
+              btn.removeClass(isNotFollowing ? followClass : followingClass)
+                .addClass(isNotFollowing ? followingClass : followClass)
+                .html(isNotFollowing ?
+                  `<span class="material-symbols-outlined">check</span>Following` :
+                  "Follow");
+              Swal.fire({
+                toast: true,
+                icon: 'error',
+                title: res.message,
+                timer: 5000,
+                position: 'bottom-end',
+                showConfirmButton: false,
+                background: '#131523',
+                color: '#fff'
+              });
+            } else {
+              btn.data("follow", !isNotFollowing);
+              $(`#followersCount`).text(res.followers_count);
+              Swal.fire({
+                toast: true,
+                icon: 'success',
+                title: res.message,
+                timer: 5000,
+                position: 'bottom-end',
+                showConfirmButton: false,
+                background: '#131523',
+                color: '#fff'
+              });
+            }
+            $(".limiter").removeClass("inline-block").addClass("hidden");
+          },
+          error: function() {
+            Swal.fire({
+              toast: true,
+              icon: 'error',
+              title: 'An error occurred.',
+              timer: 3000,
+              position: 'bottom-end',
+              showConfirmButton: false,
+              background: '#131523',
+              color: '#fff'
+            });
+            $(".limiter").removeClass("inline-block").addClass("hidden");
           }
         });
       });
